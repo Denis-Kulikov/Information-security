@@ -7,8 +7,8 @@ import (
 
 type Lab1 struct{}
 
-func (Lab1) ExponentiationModulo(n, e, m int64) int64 {
-	result := int64(1)
+func (Lab1) ExponentiationModulo(n, e, m int) int {
+	result := int(1)
 	v := n % m
 
 	for e > 0 {
@@ -16,13 +16,13 @@ func (Lab1) ExponentiationModulo(n, e, m int64) int64 {
 			result = (result * v) % m
 		}
 		v = (v * v) % m
-		e /= 2
+		e >>= 1
 	}
 
 	return result % m
 }
 
-func (l Lab1) ExponentiationModuloInverse(a, p int64) int64 {
+func (l Lab1) ExponentiationModuloInverse(a, p int) int {
 	return l.ExponentiationModulo(a, p-2, p)
 }
 
@@ -63,7 +63,7 @@ func (Lab1) GeneralizedEuclidsAlgorithm(a, b int, T *[3]int) {
 	}
 }
 
-func (l Lab1) DiffieHellmanKeyExchange(p, g, a, b int64) {
+func (l Lab1) DiffieHellmanKeyExchange(p, g, a, b int) {
 	Y_a := l.ExponentiationModulo(g, a, p)
 	Y_b := l.ExponentiationModulo(g, b, p)
 
@@ -74,19 +74,19 @@ func (l Lab1) DiffieHellmanKeyExchange(p, g, a, b int64) {
 	fmt.Printf("Абонент B получил общий ключ: %d\n\n", Z_b)
 }
 
-func (l Lab1) BabyStepGiantStep(g, h, p int64) int64 {
-	n := int64(math.Sqrt(float64(p))) + 1
+func (l Lab1) BabyStepGiantStep(a, y, p int) int {
+	n := int(math.Sqrt(float64(p))) + 1
 
-	babySteps := make(map[int64]int64)
-	for j := int64(0); j < n; j++ {
-		value := l.ExponentiationModulo(g, j, p)
+	babySteps := make(map[int]int)
+	for j := int(0); j < n; j++ {
+		value := l.ExponentiationModulo(a, j, p)
 		babySteps[value] = j
 	}
 
-	gInvN := l.ExponentiationModuloInverse(l.ExponentiationModulo(g, n, p), p)
+	gInvN := l.ExponentiationModuloInverse(l.ExponentiationModulo(a, n, p), p)
 
-	for i := int64(0); i < n; i++ {
-		giantStep := (h * l.ExponentiationModulo(gInvN, i, p)) % p
+	for i := int(0); i < n; i++ {
+		giantStep := (y * l.ExponentiationModulo(gInvN, i, p)) % p
 		if j, ok := babySteps[giantStep]; ok {
 			return i*n + j
 		}
@@ -96,9 +96,8 @@ func (l Lab1) BabyStepGiantStep(g, h, p int64) int64 {
 }
 
 func task1() {
-	l := Lab1{}
-	n, e, m := int64(7), int64(19), int64(100)
-	fmt.Printf("Exp modulo: %d ^ %d %% %d = %d\n\n", n, e, m, l.ExponentiationModulo(n, e, m))
+	n, e, m := int(7), int(19), int(100)
+	fmt.Printf("Exp modulo: %d ^ %d %% %d = %d\n\n", n, e, m, Lab1{}.ExponentiationModulo(n, e, m))
 }
 
 func task2() {
@@ -109,13 +108,21 @@ func task2() {
 }
 
 func task3() {
-	p, g, X_a, X_b := int64(19), int64(2), int64(5), int64(7)
+	p, g, X_a, X_b := int(11), int(2), int(5), int(7)
+
+	var r [3]int
+	Lab1{}.GeneralizedEuclidsAlgorithm(p, g, &r)
+	if r[0] != 1 {
+		fmt.Printf("p = %d и g = %d - не взаимно простые числа\n\n", p, g)
+		return
+	}
+
 	Lab1{}.DiffieHellmanKeyExchange(p, g, X_a, X_b)
 }
 
 func task4() {
-	g, h, p := int64(2), int64(22), int64(29)
-	result := Lab1{}.BabyStepGiantStep(g, h, p)
+	a, y, p := int(2), int(22), int(29)
+	result := Lab1{}.BabyStepGiantStep(a, y, p)
 	if result != -1 {
 		fmt.Printf("Дискретный логарифм: %d\n", result)
 	} else {
