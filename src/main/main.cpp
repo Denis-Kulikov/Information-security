@@ -1,90 +1,114 @@
 #include <cipher/cipher.hpp>
+#include <signature/signature.hpp>
+
+#include <iostream>
+#include <random>
+#include <vector>
+#include <cmath>
+#include <cassert>
+
+unsigned short hash_message(const std::string& message) {
+    unsigned int hash_value = 0;
+    for (char c : message) {
+        hash_value = (hash_value * 31 + c) % 65536; // Простейший хэш (мод 65536 для 16 бит)
+    }
+    return hash_value; // Возвращаем значение хэша в пределах 16 бит
+}
+
+
+
+std::tuple<std::string, unsigned short, unsigned short> sign_document(unsigned int p, unsigned short q, unsigned int a, unsigned short x, const std::string& message) {
+    unsigned short h = hash_message(message);
+    
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(1, q - 1);
+    unsigned short k = dis(gen);
+
+    unsigned short r = mod_exp(a, k, p) % q;
+    if (r == 0)
+        return sign_document(p, q, a, x, message);
+
+    unsigned short s = (k * h + x * r) % q;
+    if (s == 0)
+        return sign_document(p, q, a, x, message);
+
+    return {message, r, s};
+}
+
+bool verify_signature(unsigned int p, unsigned short q, unsigned int a, unsigned short y, const std::string& message, unsigned short r, unsigned short s) {
+    unsigned short h = hash_message(message);
+
+    if (!(0 < r && r < q)) {
+        return false;
+    }
+
+    unsigned short h_inv = mod_inverse(h, q);
+    unsigned short u1 = (s * h_inv) % q;
+    unsigned short u2 = (-r * h_inv) % q;
+
+    unsigned short v = (mod_exp(a, u1, p) * mod_exp(y, u2, p)) % p % q;
+
+    return v == r;
+}
 
 
 int main() {
     srand(time(0));
+    std::string file_name = "test";
+    
+    if (Signature::verifyWithRSA(file_name, Signature::signWithRSA(file_name))) {
+        std::cout << "Подпись " "Эль-Гамаля" " произошла успешно." << std::endl;
+    } else {
+        std::cout << "Подпись " "Эль-Гамаля" " произошла с ошибками." << std::endl;
+    }
 
-    std::string input_file = "input.txt";
+    if (Signature::verifyWithRSA(file_name, Signature::signWithRSA(file_name))) {
+        std::cout << "Подпись " "RSA" " произошла успешно." << std::endl;
+    } else {
+        std::cout << "Подпись " "RSA" " произошла с ошибками." << std::endl;
+    }
+
+    // auto keys = Signature::generateGostKeys();
+    // std::string message = "Test GOST";
+    // auto signature = Signature::gostSign(keys.first, message);
+    // if (Signature::gostVerify(keys.second, signature, message)) {
+    //     std::cout << "Подпись " "ГОСТ" " произошла успешно." << std::endl;
+    // } else {
+    //     std::cout << "Подпись " "ГОСТ" " произошла с ошибками." << std::endl;
+    // }
 
 
-    #if true
-    int p = 30803;
 
-    int eA, dA;
-    ShamirCipher::gen_keys(eA, dA, p);
-    std::cout << "Alice's keys: (eA = " << eA << ", dA = " << dA << ")\n";
+    unsigned int p = 2147483647;  // p размером 31 бит (пример простого числа)
+    unsigned short q = 65535;      // q размером 16 бит (максимальное значение для 16 бит)
+    
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(2, p - 1);
+    unsigned int g = dis(gen);
+    unsigned int b = dis(gen) % 1000;
+    unsigned int a = mod_exp(g, b, p);
 
-    int eB, dB;
-    ShamirCipher::gen_keys(eB, dB, p);
-    std::cout << "Bob's keys: (eB = " << eB << ", dB = " << dB << ")\n";
+    std::uniform_int_distribution<> dis_x(1, q - 1);
+    unsigned short x = dis_x(gen);
 
-    long long message;
-    std::cout << "Enter message to encrypt (as a number): ";
-    std::cin >> message;
+    unsigned short y = mod_exp(a, x, p);
 
-    long long encrypted_by_Alice = ShamirCipher::encrypt(message, eA, p);
-    std::cout << "Message after Alice encryption: " << encrypted_by_Alice << "\n";
+    bool valid;
+    do {
+        std::string message = "Документ для подписи";
+        auto [signed_message, r, s] = sign_document(p, q, a, x, message);
+        valid = verify_signature(p, q, a, y, signed_message, r, s);
+    } while (!valid);
 
-    long long encrypted_by_Bob = ShamirCipher::encrypt(encrypted_by_Alice, eB, p);
-    std::cout << "Message after Bob encryption: " << encrypted_by_Bob << "\n";
 
-    long long decrypted_by_Bob = ShamirCipher::decrypt(encrypted_by_Bob, dB, p);
-    std::cout << "Message after Bob decryption: " << decrypted_by_Bob << "\n";
+    if (valid) {
+        std::cout << "Подпись " "ГОСТ" " произошла успешно." << std::endl;
+    } else {
+        std::cout << "Подпись " "ГОСТ" " произошла с ошибками." << std::endl;
+    }
 
-    long long decrypted_by_Alice = ShamirCipher::decrypt(decrypted_by_Bob, dA, p);
-    std::cout << "Message after Alice decryption: " << decrypted_by_Alice << "\n";
-    #endif
-
-    #if false
-    long long p, g, y, x;
-    ElGamalCipher::gen_keys(p, g, y, x);
-
-    std::cout << "Public key: (p = " << p << ", g = " << g << ", y = " << y << ")\n";
-    std::cout << "Private key: (x = " << x << ")\n";
-
-    long long message;
-    std::cout << "Enter message to encrypt (as a number): ";
-    std::cin >> message;
-
-    auto encrypted_message = ElGamalCipher::encrypt(message, p, g, y);
-    std::cout << "Encrypted message: (a = " << encrypted_message.first << ", b = " << encrypted_message.second << ")\n";
-
-    long long decrypted_message = ElGamalCipher::decrypt(encrypted_message.first, encrypted_message.second, p, x);
-    std::cout << "Decrypted message: " << decrypted_message << "\n";
-    #endif
-
-    #if false
-    std::string message;
-    std::cout << "Enter message to encrypt: ";
-    std::getline(std::cin, message);
-
-    std::string key = VernamCipher::gen_keys(message.length());
-    std::cout << "Generated key: " << key << "\n";
-
-    std::string encrypted_message = VernamCipher::encrypt_decrypt(message, key);
-    std::cout << "Encrypted message: " << encrypted_message << "\n";
-
-    std::string decrypted_message = VernamCipher::encrypt_decrypt(encrypted_message, key);
-    std::cout << "Decrypted message: " << decrypted_message << "\n";
-    #endif
-
-    #if false
-    int e, d, n;
-    RSA::gen_keys(e, d, n);
-
-    std::cout << "Public key: (" << e << ", " << n << ")\n";
-    std::cout << "Private key: (" << d << ", " << n << ")\n";
-
-    long long message;
-    std::cout << "Enter message to encrypt (as a number): ";
-    std::cin >> message;
-
-    long long encrypted_message = RSA::encrypt(message, e, n);
-    std::cout << "Encrypted message: " << encrypted_message << "\n";
-
-    long long decrypted_message = RSA::decrypt(encrypted_message, d, n);
-    std::cout << "Decrypted message: " << decrypted_message << "\n";
-    #endif
 
     return 0;
 }

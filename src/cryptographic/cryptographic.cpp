@@ -10,14 +10,14 @@ int gcd(int a, int b) {
     return a;
 }
 
-long long mod_pow(long long base, long long exp, long long mod) {
-    long long result = 1;
-    base = base % mod;
+long long mod_exp(long long base, long long exp, long long mod) {
+    unsigned short result = 1;
+    base = base % mod;  // В случае, если base больше, чем mod
     while (exp > 0) {
-        if (exp % 2 == 1) {
+        if (exp % 2 == 1) {  // Если степень нечётная
             result = (result * base) % mod;
         }
-        exp = exp >> 1;
+        exp = exp >> 1;  // Делим степень пополам
         base = (base * base) % mod;
     }
     return result;
@@ -33,9 +33,26 @@ int mod_inverse(int e, int phi) {
         std::tie(r, new_r) = std::make_pair(new_r, r - quotient * new_r);
     }
 
-    if (r > 1) return -1;
+    if (r > 1) return 0;
     if (t < 0) t += phi;
     return t;
+}
+
+unsigned short umod_inverse(unsigned short a, unsigned short m) {
+    unsigned short m0 = m, x0 = 0, x1 = 1;
+    while (a > 1) {
+        unsigned short q = a / m;
+        unsigned short t = m;
+        m = a % m;
+        a = t;
+        t = x0;
+        x0 = x1 - q * x0;
+        x1 = t;
+    }
+    if (x1 < 0) {
+        x1 += m0;
+    }
+    return x1;
 }
 
 bool is_prime(int n) {
