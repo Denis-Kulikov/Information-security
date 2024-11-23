@@ -14,4 +14,5 @@ target_link_libraries(
 	lib-cipher
 	lib-cryptographic
 	lib-signature
+	lib-mentalPoker
 )

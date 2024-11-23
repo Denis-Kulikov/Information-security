@@ -16,5 +16,7 @@ target_link_libraries(
   lib-signature
   PRIVATE
 	lib-cryptographic
+	lib-cipher
 	OpenSSL::Crypto
 )
+

@@ -7,7 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BUILD_TYPE Release)
 
 include_directories(include)
-include_directories(build/_deps/openssl-src/include)
+#include_directories(build/_deps/openssl-src/include)
 
-add_subdirectory(external)
+#add_subdirectory(external)
 add_subdirectory(src)
+
