@@ -15,4 +15,5 @@ target_link_libraries(
 	lib-cryptographic
 	lib-signature
 	lib-mentalPoker
+	lib-votingSystem
 )
